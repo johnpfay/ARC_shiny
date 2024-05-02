@@ -35,6 +35,9 @@ var_list.remove('DataType_max')
 
 #Plot function
 def line_plot(the_var, the_ubigeo, the_offset):
+    #Create the plot title
+    the_title = f"P. Vivax cases & {the_var} for district {the_ubigeo}: {the_offset} weeks offset"
+
     #Set the start and end times
     start_time = '2010-01-01'
     end_time = '2024-05-01'
@@ -56,14 +59,15 @@ def line_plot(the_var, the_ubigeo, the_offset):
     )
 
     # Compute the lagged variable
-    df_LDAS_subset['lagged'] = df_LDAS_subset[the_var].shift(-1*the_offset)
+    df_LDAS_subset['lagged'] = df_LDAS_subset[the_var].shift(the_offset)
 
     ## Plot the LDAS variable, split into retrospective and forecast components
-    ldas_plot = df_LDAS_subset.query('DataType=="retrospective"')['lagged'].plot(ylabel=the_var,color='red',alpha=0.6,figsize=(15,5),legend=True)
-    df_LDAS_subset.query('DataType=="forecast"')['lagged'].plot(ax=ldas_plot,color='gray',alpha=0.8,label='Forecast',legend=True)
+    ldas_plot = df_LDAS_subset.query('DataType=="retrospective"')['lagged'].plot(
+        ylabel=the_var,color='grey',alpha=0.6,figsize=(15,5),legend=True,title=the_title)
+    df_LDAS_subset.query('DataType=="forecast"')['lagged'].plot(ax=ldas_plot,color='red',alpha=0.8,label='Forecast',legend=True)
 
     #Set the legend
-    ldas_plot.legend([the_var],loc='upper right')
+    ldas_plot.legend([the_var],loc='upper left')
 
     #Create a shared axis for the surveillance data
     shared_axis = ldas_plot.twinx()
@@ -71,7 +75,7 @@ def line_plot(the_var, the_ubigeo, the_offset):
 
     #Plot the surveillance data on the same x-axis
     df_cases_subset['p_vivax'].plot(ax=shared_axis,ylabel='Cases',color='blue',label='P. Vivax',legend=True)
-    shared_axis.legend(loc='upper left')
+    shared_axis.legend(loc='upper right')
 
     #Set the x-limits
     ldas_plot.set_xlim(pd.Timestamp(start_time), pd.Timestamp(end_time))
@@ -93,7 +97,7 @@ app_ui = ui.page_fluid(
             choices=list(df_LDAS.index.get_level_values(0).unique())
         ),
         #Offset slider
-        ui.input_slider("offset_select", "Offset", min=-10, max=10, value=0)
+        ui.input_slider("offset_select", "Lag time (weeks)", min=-10, max=10, value=0)
         )
     ),
     ui.panel_main(
