@@ -12,7 +12,7 @@ from shiny import ui, render, App
 
 #Read in LDAS data (long format)
 df_LDAS = pd.read_csv(
-    Path.cwd() / "data" / "processed" / "Peru_LDAS.csv",
+    "https://github.com/johnpfay/ARC_shiny/raw/main/data/processed/Peru_LDAS.csv",
     dtype={'ubigeo':'str'},             #Read the ubigeo field as string
     parse_dates=['EpiweekStartDate']    #Read the EpiweekStartDate as datetime
 ).set_index(['ubigeo','EpiweekStartDate','year','week'])
@@ -20,13 +20,18 @@ df_LDAS = pd.read_csv(
 #Read in surveillance data
 df_surveillance = (
     pd.read_csv(
-        Path.cwd() / "data" / "processed" / "datos_abiertos_vigilancia_malaria_processed.csv",
+        "https://github.com/johnpfay/ARC_shiny/raw/main/data/processed/datos_abiertos_vigilancia_malaria_processed.csv",
         dtype={'ubigeo':'str'},             #Read the ubigeo field as string
         parse_dates=['date']                #Read the date field as datetime
     )
     .rename(columns={'ano':'year','semana':'week'})
     .set_index(['ubigeo','date','year','week'])
 )
+
+#Create the LDAS variable list 
+var_list = df_LDAS.columns.to_list() 
+var_list.remove('DataType')
+var_list.remove('DataType_max')
 
 #Plot function
 def line_plot(the_var, the_ubigeo, the_offset):
@@ -51,7 +56,7 @@ def line_plot(the_var, the_ubigeo, the_offset):
     )
 
     # Compute the lagged variable
-    df_LDAS_subset['lagged'] = df_LDAS_subset[the_var].shift(the_offset)
+    df_LDAS_subset['lagged'] = df_LDAS_subset[the_var].shift(-1*the_offset)
 
     ## Plot the LDAS variable, split into retrospective and forecast components
     ldas_plot = df_LDAS_subset.query('DataType=="retrospective"')['lagged'].plot(ylabel=the_var,color='red',alpha=0.6,figsize=(15,5),legend=True)
@@ -79,7 +84,7 @@ app_ui = ui.page_fluid(
         ui.input_select(
             id="LDAS_select",
             label="LDAS variable:",
-            choices=df_LDAS.columns.to_list()  
+            choices=var_list 
         ),
         #ubigeo selector
         ui.input_select(
@@ -88,7 +93,7 @@ app_ui = ui.page_fluid(
             choices=list(df_LDAS.index.get_level_values(0).unique())
         ),
         #Offset slider
-        ui.input_slider("offset_select", "Offset", min=0, max=10, value=5)
+        ui.input_slider("offset_select", "Offset", min=-10, max=10, value=0)
         )
     ),
     ui.panel_main(
